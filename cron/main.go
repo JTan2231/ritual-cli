@@ -56,10 +56,19 @@ func main() {
 		errorCheck("", err)
 	}
 
+	// get only those entries whose dates are within the past 7 days
+	var recentEntries []UserEntry
+	for _, entry := range userEntries {
+		entryDate, err := time.Parse("2006-01-02", entry.Date)
+		errorCheck("", err)
+		if time.Since(entryDate).Hours() > 168 {
+			recentEntries = append(recentEntries, entry)
+		}
+	}
+
 	postBody, err := json.Marshal(struct {
-		Entries  []UserEntry `json:"entries"`
-		Memories []UserEntry `json:"memories"`
-	}{Entries: userEntries, Memories: make([]UserEntry, 0)})
+		Entries []UserEntry `json:"entries"`
+	}{Entries: recentEntries})
 	errorCheck("", err)
 
 	req, err := http.NewRequest("POST", "http://localhost:5000/cli-newsletters", bytes.NewBuffer(postBody))
