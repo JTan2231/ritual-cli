@@ -38,13 +38,13 @@ func main() {
 
 	log.SetOutput(file)
 
-	MEMORY := ROOT + "entries.json"
-	var authToken string
-	var ok bool
-	if authToken, ok = os.LookupEnv("RITUAL_CLI_KEY"); !ok {
-		log.Fatal("Error: The required environment variable `RITUAL_CLI_KEY` is not set. Generate a new one at <link>.")
+	if len(os.Args) != 2 {
+		log.Fatal("Error: Invalid number of arguments. Usage: ./cron SECRET")
 		os.Exit(1)
 	}
+
+	authToken := os.Args[1]
+	MEMORY := ROOT + "entries.json"
 
 	var entryData []byte
 	var userEntries []UserEntry
@@ -61,17 +61,19 @@ func main() {
 	for _, entry := range userEntries {
 		entryDate, err := time.Parse("2006-01-02", entry.Date)
 		errorCheck("", err)
-		if time.Since(entryDate).Hours() > 168 {
+		if time.Since(entryDate).Hours() < 168 {
 			recentEntries = append(recentEntries, entry)
 		}
 	}
+
+	log.Println(recentEntries)
 
 	postBody, err := json.Marshal(struct {
 		Entries []UserEntry `json:"entries"`
 	}{Entries: recentEntries})
 	errorCheck("", err)
 
-	req, err := http.NewRequest("POST", "http://localhost:5000/cli-newsletters", bytes.NewBuffer(postBody))
+	req, err := http.NewRequest("POST", "https://ritual-api-production.up.railway.app/cli-newsletters", bytes.NewBuffer(postBody))
 	errorCheck("", err)
 
 	req.Header.Set("Content-Type", "application/json")

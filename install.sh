@@ -10,6 +10,12 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
+if [ -z "$RITUAL_CLI_SECRET" ]; then
+    echo "RTIUAL_CLI_SECRET is not defined. What is your Ritual secret key? Get one from https://ritual-api-production.up.railway.app/get-config-token?email=$1 if you don't have one/don't know."
+    read -rp "Ritual secret key: " R
+    export RITUAL_CLI_SECRET=$R
+fi
+
 echo "Building the CLI..."
 go build -o ritual ./cli
 
@@ -34,11 +40,5 @@ elif [ $LOCAL_HOUR -ge 24 ]; then
     LOCAL_HOUR=$((LOCAL_HOUR - 24))
 fi
 
-CRON_JOB="0 $LOCAL_HOUR * * 0 /usr/local/bin/ritual_cron"
-( crontab -l | grep -Fv "$CRON_JOB" ; echo "$CRON_JOB" ) | crontab -
-echo "Cron job scheduled for $LOCAL_HOUR:00 local time."
-echo
-echo 'Usage: ritual "your entry"'
-echo
-echo "Generate a CLI secret key at https://ritual-api-production.up.railway.app/get-config-token?email=$1"
-echo "Make sure to set your RITUAL_CLI_SECRET environment variable with your generated secret key."
+CRON_JOB="0 $LOCAL_HOUR * * 0 /usr/local/bin/ritual_cron $RITUAL_CLI_SECRET"
+echo "Add \`$CRON_JOB\` to your crontab with \`crontab -e\` to receive weekly newsletters."
